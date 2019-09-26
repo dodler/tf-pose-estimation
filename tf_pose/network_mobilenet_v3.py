@@ -2,25 +2,26 @@ from __future__ import absolute_import
 
 import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.ERROR)
+
 from tf_pose import network_base
-from tf_pose.mobilenet import mobilenet_v2
+from tf_pose.mobilenet.mobilenet_v3 import mobilenet_v3_large
 from tf_pose.network_base import layer
 
 
-class Mobilenetv2Network(network_base.BaseNetwork):
-    def __init__(self, inputs, trainable=True, conv_width=1.0, conv_width2=1.0):
-        self.conv_width = conv_width
+class Mobilenetv3Network(network_base.BaseNetwork):
+    def __init__(self, inputs, trainable=True, conv_width2=1.0):
+        self.trainable = trainable
         self.refine_width = conv_width2
         network_base.BaseNetwork.__init__(self, inputs, trainable)
 
     @layer
     def base(self, input, name):
-        with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):
-            net, endpoints = mobilenet_v2.mobilenet_base(input, self.conv_width, finegrain_classification_mode=(self.conv_width < 1.0))
-            for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
-                self.layers['%s/%s' % (name, k)] = tensor
-                # print(k, tensor.shape)
-            return net
+        num_classes = 1000
+        net, endpoints = mobilenet_v3_large(input, num_classes, multiplier=1.0, is_training=self.trainable, reuse=None)
+        for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
+            self.layers[k] = tensor
+
+        return net
 
     def setup(self):
         depth2 = lambda x: int(x * self.refine_width)
@@ -30,10 +31,10 @@ class Mobilenetv2Network(network_base.BaseNetwork):
         # TODO : add more feature with downsample?
         # self.feed('base/layer_4/output').max_pool(2, 2, 2, 2, name='base/layer_4/output/downsample')
         # self.feed('base/layer_4/output').avg_pool(2, 2, 2, 2, name='base/layer_4/output/downsample')
-        self.feed('base/layer_14/output').upsample(factor='base/layer_7/output', name='base/layer_14/output/upsample')
+        self.feed('bneck12').upsample(factor='bneck5', name='bneck12/upsample')
         (self.feed(
-            'base/layer_7/output',
-            'base/layer_14/output/upsample',
+            'bneck5',
+            'bneck12/upsample',
             # 'base/layer_4/output/downsample'
         ).concat(3, name='feat_concat'))
 
@@ -111,10 +112,7 @@ class Mobilenetv2Network(network_base.BaseNetwork):
 
 
 if __name__ == '__main__':
-    with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):
-        input_node = tf.placeholder(tf.float32, shape=(2, 224, 224, 3),
-                                    name='image')
-        net, endpoints = mobilenet_v2.mobilenet_base(input_node, 1.0,
-                                                     finegrain_classification_mode=True)
-        for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
-            print('item',k, tensor.shape)
+    input_node = tf.placeholder(tf.float32, shape=(2, 224, 224, 3),
+                                name='image')
+    net = Mobilenetv3Network({'image': input_node})
+
