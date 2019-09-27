@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=str, default='0.001')
     parser.add_argument('--tag', type=str, default='test')
     parser.add_argument('--checkpoint', type=str, default='')
+    parser.add_argument('--epochs', type=int, default=500)
 
     parser.add_argument('--input-width', type=int, default=432)
     parser.add_argument('--input-height', type=int, default=368)
@@ -205,7 +206,9 @@ if __name__ == '__main__':
         initial_gs_num = sess.run(global_step)
 
         last_log_epoch1 = last_log_epoch2 = -1
-        while True:
+        ep_cnt = 0
+        while ep_cnt < args.epochs:
+            ep_cnt += 1
             _, gs_num = sess.run([train_op, global_step])
             curr_epoch = float(gs_num) / step_per_epoch
 
