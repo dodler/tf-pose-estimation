@@ -166,8 +166,10 @@ def model_wh(resolution_str):
 if __name__ == '__main__':
     input_node = tf.placeholder(tf.float32, shape=(2, 224, 224, 3),
                                 name='image')
-    # net = Mobilenetv2Network({'image': input_node}, conv_width=1.4, trainable=True)
-    net = Mobilenetv3Network({'image': input_node})
+    net = Mobilenetv2Network({'image': input_node}, conv_width=1.4, trainable=True)
+    # net = Mobilenetv3Network({'image': input_node})
+
+    print_graph = False
 
     import numpy as np
     losses = []
@@ -178,4 +180,5 @@ if __name__ == '__main__':
         l1s, l2s = net.loss_l1_l2()
         s=tf.reduce_sum(l1s)
         print(sess.run(s, feed_dict={input_node:test_image}))
-        [print(n.name) for n in tf.get_default_graph().as_graph_def().node]
+        if print_graph:
+            [print(n.name) for n in tf.get_default_graph().as_graph_def().node]
