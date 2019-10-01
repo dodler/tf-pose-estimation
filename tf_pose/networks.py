@@ -102,10 +102,13 @@ def get_network(type, placeholder_input, sess_for_load=None, trainable=True):
     else:
         raise Exception('Invalid Model Name.')
 
-    pretrain_path_full = os.path.join(_get_base_path(), pretrain_path)
+    if pretrain_path is not None:
+        pretrain_path_full = os.path.join(_get_base_path(), pretrain_path)
+    else:
+        pretrain_path_full = None
     if sess_for_load is not None:
         if type in ['cmu', 'vgg', 'openpose']:
-            if not os.path.isfile(pretrain_path_full):
+            if pretrain_path_full is not None and not os.path.isfile(pretrain_path_full):
                 raise Exception('Model file doesn\'t exist, path=%s' % pretrain_path_full)
             net.load(os.path.join(_get_base_path(), pretrain_path), sess_for_load)
         else:
